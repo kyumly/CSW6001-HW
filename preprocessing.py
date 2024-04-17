@@ -59,6 +59,20 @@ class PCA(Linear):
         # data = super().forward(X)
         # return data[:, range(num)]
 
+
+    def reconstruct(self, num=1):
+        """
+        예시 :
+        벡터 (2,1) @ (1,)
+        reconst_test = (test_Vector.T @ valuess + 5)
+
+        :param num:
+        :return:
+        """
+        X = self.X - self.get_mean(self.X)
+        return (X @ self.vector[:, range(num)]) @ self.vector[:, range(num)].T + self.get_mean(self.X)
+
+
 class LDA():
     """
     LDA 구현하는 클래스
