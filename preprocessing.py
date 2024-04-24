@@ -1,5 +1,7 @@
 import numpy
 import numpy as np
+import matplotlib.pyplot as plt
+
 
 def get_scatter_matrix(X):
     """
@@ -20,28 +22,34 @@ def get_eigen_vectors(X):
     index = np.argsort(eigen_value)[::-1]
     eigen_value = eigen_value[index]
     eigen_vector = eigen_vector[:, index]
-
     return eigen_value, eigen_vector
 
-class Linear():
-    """
-    projection 투영하는 클래스
-    """
+class Dataset():
     def __init__(self, X=None, vector=None, value=None):
         self.X = X
         self.vector = vector
         self.value = value
         self.N, self.D =X.shape
 
-    def forward(self, X):
-        return self.X @ self.vector
-
-    def __call__(self, num=1):
-        return self.forward(num)
-
     def get_mean(self, X):
         mean = X.mean(axis=0)
         return mean
+
+
+class Linear(Dataset):
+    """
+    projection 투영하는 클래스
+    """
+    def __init__(self, X=None, vector=None, value=None):
+        super().__init__(X, vector, value)
+
+    def forward(self, num=1):
+        X = self.X - self.get_mean(self.X)
+        return X @ self.vector[:, range(num)]
+
+    def __call__(self, num):
+        return self.forward(num)
+
 
 class PCA(Linear):
     """
@@ -50,14 +58,6 @@ class PCA(Linear):
     def __init__(self, X, vector, value):
         super(PCA, self).__init__(X, vector, value)
         self.explained_variance_ratio = value / value.sum()
-
-    def forward(self, num=1):
-        # return self.X @ self.vector
-        X = self.X - self.get_mean(self.X)
-        return X @ self.vector[:, range(num)]
-        # if num > self.D : raise ValueError("rank of X must be")
-        # data = super().forward(X)
-        # return data[:, range(num)]
 
 
     def reconstruct(self, num=1):
@@ -77,5 +77,23 @@ class LDA():
     """
     LDA 구현하는 클래스
     """
-    def __init__(self):
-        pass
+    def __init__(self, data):
+        self.data = data
+        self.mean = None
+
+
+
+    def grad_show(self):
+        min_x = min(0, 11)
+        max_x = max(0, 11)
+
+        # 축 범위 설정
+        plt.xlim(min_x, max_x)
+        plt.ylim(min_x, max_x)
+        plt.scatter(x1[:, 0], x1[:, 1], color="r")
+        plt.scatter(x2[:, 0], x2[:, 1], color="b")
+        plt.scatter(u1[0], u1[1], color="g")
+        plt.scatter(u2[0], u2[1], color="g")
+
+        plt.grid(True, linestyle='--', linewidth=1)
+        plt.show()
