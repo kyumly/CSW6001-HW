@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+COLOR = ["r", "g", 'b']
+
 def get_scatter_matrix(X):
     """
     Scatter matrix 구현하는 함수
@@ -31,9 +33,20 @@ class Dataset():
         self.value = value
         self.N, self.D =X.shape
 
+        self.scatter_matrix = None
+
+
     def get_mean(self, X):
         mean = X.mean(axis=0)
         return mean
+
+    def get_scatter_matrix(self):
+        N = self.X.shape[0]
+        mean = self.X.mean(axis=0)
+        X = self.X - mean
+        # numpy.cov(X, rowvar = False, bias=True)
+        result = (X.T @ X) / N
+        return result
 
 
 class Linear(Dataset):
@@ -78,22 +91,53 @@ class LDA():
     LDA 구현하는 클래스
     """
     def __init__(self, data):
-        self.data = data
-        self.mean = None
+        super().__init__()
+        self.data : np.ndarray= data
+        self.mean : np.ndarray = self.data.mean(axis=1).reshape(self.data.shape[0], 1, -1)
 
+        self.s_w : np.ndarray = None
+        self.s_b : np.ndarray = None
 
 
     def grad_show(self):
-        min_x = min(0, 11)
-        max_x = max(0, 11)
+        min_x = self.data.min() - 1
+        max_x = self.data.max() + 1
 
         # 축 범위 설정
         plt.xlim(min_x, max_x)
         plt.ylim(min_x, max_x)
-        plt.scatter(x1[:, 0], x1[:, 1], color="r")
-        plt.scatter(x2[:, 0], x2[:, 1], color="b")
-        plt.scatter(u1[0], u1[1], color="g")
-        plt.scatter(u2[0], u2[1], color="g")
+
+        for index, value in enumerate(self.data):
+            x = self.data[index, :, 0]
+            y= self.data[index, :, 1]
+            mean = self.mean[index, :].reshape(-1)
+
+            plt.scatter(x, y, color=COLOR[index])
+            plt.scatter(mean[0], mean[1], color="k")
 
         plt.grid(True, linestyle='--', linewidth=1)
         plt.show()
+
+    def set_scatter_w_matrix(self, dim=0):
+        if None:
+            raise "이미 값이 존재 합니다"
+        N = self.data.shape[1]
+        X =  np.subtract(self.data, self.mean)
+
+        # numpy.cov(X, rowvar = False, bias=True)
+        result = (X.transpose(0, 2, 1) @ X) / N
+        self.s_w = result.sum(axis=0)
+        return self.s_w
+
+    def set_scatter_b_matrix(self):
+        u12 = (self.mean[0] - self.mean[1]).reshape(-1, 1)
+        print("값 : ", u12)
+        self.s_b = u12 @ u12.T
+        return self.s_b
+
+    def get_lda(self, num=1):
+        inverse = np.linalg.inv(self.s_w) @ self.s_b
+        value, vector = get_eigen_vectors(inverse)
+        vector = vector[:, :num]
+        return self.data @ vector
+
