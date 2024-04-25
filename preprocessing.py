@@ -98,7 +98,7 @@ class LDA():
         self.data : np.ndarray= data
         self.mean : np.ndarray = self.data.mean(axis=1).reshape(self.data.shape[0], 1, -1)
 
-        self.U = (self.mean * 5).sum(axis=0) / (self.N * self.classes)
+        self.U = (self.mean * self.N).sum(axis=0) / (self.N * self.classes)
 
         self.s_w : np.ndarray = None
         self.s_b : np.ndarray = np.zeros((self.F, self.F), dtype=np.float32)
@@ -150,6 +150,6 @@ class LDA():
         inverse = np.linalg.inv(self.s_w) @ self.s_b
         value, vector = get_eigen_vectors(inverse)
         vector = vector[:, :num]
-
+        print(vector.shape)
         return self.data @ vector
 
