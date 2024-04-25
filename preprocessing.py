@@ -92,14 +92,21 @@ class LDA():
     """
     def __init__(self, data):
         super().__init__()
+        self.classes = data.shape[0]
+        self.N, self.F = data.shape[1:]
+
         self.data : np.ndarray= data
         self.mean : np.ndarray = self.data.mean(axis=1).reshape(self.data.shape[0], 1, -1)
 
+        self.U = (self.mean * 5).sum(axis=0) / (self.N * self.classes)
+
         self.s_w : np.ndarray = None
-        self.s_b : np.ndarray = None
+        self.s_b : np.ndarray = np.zeros((self.F, self.F), dtype=np.float32)
 
 
     def grad_show(self):
+        if self.F >= 3:
+            raise "출력 실패"
         min_x = self.data.min() - 1
         max_x = self.data.max() + 1
 
@@ -122,22 +129,27 @@ class LDA():
         if None:
             raise "이미 값이 존재 합니다"
         N = self.data.shape[1]
-        X =  np.subtract(self.data, self.mean)
-
+        X = np.subtract(self.data, self.mean)
         # numpy.cov(X, rowvar = False, bias=True)
         result = (X.transpose(0, 2, 1) @ X) / N
         self.s_w = result.sum(axis=0)
         return self.s_w
 
     def set_scatter_b_matrix(self):
-        u12 = (self.mean[0] - self.mean[1]).reshape(-1, 1)
-        print("값 : ", u12)
-        self.s_b = u12 @ u12.T
+        if self.classes > 2:
+            for index, vector in enumerate(self.mean):
+                u_i = (vector - self.U).reshape(-1 ,1)
+                self.s_b += self.N * (u_i @ u_i.T)
+        else:
+            u12 = (self.mean[0] - self.mean[1]).reshape(-1, 1)
+            self.s_b = u12 @ u12.T
+
         return self.s_b
 
     def get_lda(self, num=1):
         inverse = np.linalg.inv(self.s_w) @ self.s_b
         value, vector = get_eigen_vectors(inverse)
         vector = vector[:, :num]
+
         return self.data @ vector
 
