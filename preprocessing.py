@@ -90,66 +90,43 @@ class LDA():
     """
     LDA 구현하는 클래스
     """
-    def __init__(self, data):
+    def __init__(self, data, target):
         super().__init__()
-        self.classes = data.shape[0]
-        self.N, self.F = data.shape[1:]
-
-        self.data : np.ndarray= data
-        self.mean : np.ndarray = self.data.mean(axis=1).reshape(self.data.shape[0], 1, -1)
-
-        self.U = (self.mean * self.N).sum(axis=0) / (self.N * self.classes)
-
-        self.s_w : np.ndarray = None
-        self.s_b : np.ndarray = np.zeros((self.F, self.F), dtype=np.float32)
+        #입력 데이터 정보 저장
+        self.data = data
+        self.N, self.F = data.shape
+        
+        # classes 대한 정보
+        self.classes = np.unique(target)
+        self.labels = target
+        self.vector = None
 
 
-    def grad_show(self):
-        if self.F >= 3:
-            raise "출력 실패"
-        min_x = self.data.min() - 1
-        max_x = self.data.max() + 1
-
-        # 축 범위 설정
-        plt.xlim(min_x, max_x)
-        plt.ylim(min_x, max_x)
-
-        for index, value in enumerate(self.data):
-            x = self.data[index, :, 0]
-            y= self.data[index, :, 1]
-            mean = self.mean[index, :].reshape(-1)
-
-            plt.scatter(x, y, color=COLOR[index])
-            plt.scatter(mean[0], mean[1], color="k")
-
-        plt.grid(True, linestyle='--', linewidth=1)
-        plt.show()
-
-    def set_scatter_w_matrix(self, dim=0):
-        if None:
-            raise "이미 값이 존재 합니다"
-        N = self.data.shape[1]
-        X = np.subtract(self.data, self.mean)
-        # numpy.cov(X, rowvar = False, bias=True)
-        result = (X.transpose(0, 2, 1) @ X) / N
-        self.s_w = result.sum(axis=0)
-        return self.s_w
-
-    def set_scatter_b_matrix(self):
-        if self.classes > 2:
-            for index, vector in enumerate(self.mean):
-                u_i = (vector - self.U).reshape(-1 ,1)
-                self.s_b += self.N * (u_i @ u_i.T)
-        else:
-            u12 = (self.mean[0] - self.mean[1]).reshape(-1, 1)
-            self.s_b = u12 @ u12.T
-
-        return self.s_b
-
-    def get_lda(self, num=1):
-        inverse = np.linalg.inv(self.s_w) @ self.s_b
+    def fit(self, num=1):
+        # print(self.data[self.labels == 0] - self.data[self.labels == 0].mean(axis=0))
+        mean_list = [self.data[self.labels == c].mean(axis=0) for c in self.classes]
+        SW, SB = self.get_scatter_matrix(mean_list)
+        inverse = np.linalg.inv(SW).dot(SB)
         value, vector = get_eigen_vectors(inverse)
-        vector = vector[:, :num]
-        print(vector.shape)
-        return self.data @ vector
+        vector = vector[:, :num].real
+        self.vector = vector
+
+    def get_scatter_matrix(self, mean_list):
+
+        U = np.mean(self.data, axis=0)
+
+        S_W = np.zeros((self.F, self.F))
+        S_B = np.zeros((self.F, self.F))
+        for index, value in enumerate(self.classes):
+            u_i = self.data[self.labels == value]
+            S_W += (u_i - mean_list[index]).T @ (u_i - mean_list[index])
+
+            u = (mean_list[index] - U).reshape(-1,1)
+            N = u_i.shape[0]
+            S_B += N * (u @ u.T)
+        return S_W, S_B
+
+
+    def __call__(self):
+        return  self.data @ self.vector
 
