@@ -5,17 +5,6 @@ import matplotlib.pyplot as plt
 
 COLOR = ["r", "g", 'b']
 
-def get_scatter_matrix(X):
-    """
-    Scatter matrix 구현하는 함수
-    """
-    X : numpy.array
-    N = X.shape[0]
-    mean = X.mean(axis = 0)
-    X = X - mean
-    # numpy.cov(X, rowvar = False, bias=True)
-    result = (X.T @ X)
-    return result
 
 
 def get_eigen_vectors(X):
@@ -26,54 +15,47 @@ def get_eigen_vectors(X):
     eigen_vector = eigen_vector[:, index]
     return eigen_value, eigen_vector
 
-class Dataset():
-    def __init__(self, X=None, vector=None, value=None):
+class PCA():
+    """
+    PCA 구현하는 클래스
+    """
+    def __init__(self, X):
         self.X = X
-        self.vector = vector
-        self.value = value
-        self.N, self.D =X.shape
+        self.N, self.F = X.shape
+        self.v = None
+        self.value = None
+        self.explained_variance_ratio = None
 
-        self.scatter_matrix = None
+        # self.explained_variance_ratio = value / value.sum()
 
+    def fit(self, num=1):
+        s = self.get_scatter_matrix()
+        value, vector = get_eigen_vectors(s)
+
+        self.value = value.real
+
+        self.explained_variance_ratio = self.value.real / self.value.sum()
+        print(vector.shape)
+        v = vector[:, :num].real
+        if num == 1:
+           v = v.reshape(-1 ,1)
+        self.v = v
 
     def get_mean(self, X):
         mean = X.mean(axis=0)
         return mean
-
     def get_scatter_matrix(self):
-        N = self.X.shape[0]
+        """
+        Scatter matrix 구현하는 함수
+        """
+        X: numpy.array
         mean = self.X.mean(axis=0)
         X = self.X - mean
         # numpy.cov(X, rowvar = False, bias=True)
-        result = (X.T @ X) / N
+        result = (X.T @ X) / self.N
         return result
 
-
-class Linear(Dataset):
-    """
-    projection 투영하는 클래스
-    """
-    def __init__(self, X=None, vector=None, value=None):
-        super().__init__(X, vector, value)
-
-    def forward(self, num=1):
-        X = self.X - self.get_mean(self.X)
-        return X @ self.vector[:, range(num)]
-
-    def __call__(self, num):
-        return self.forward(num)
-
-
-class PCA(Linear):
-    """
-    PCA 구현하는 클래스
-    """
-    def __init__(self, X, vector, value):
-        super(PCA, self).__init__(X, vector, value)
-        self.explained_variance_ratio = value / value.sum()
-
-
-    def reconstruct(self, num=1):
+    def reconstruct(self):
         """
         예시 :
         벡터 (2,1) @ (1,)
@@ -82,8 +64,13 @@ class PCA(Linear):
         :param num:
         :return:
         """
+        mean = self.get_mean(self.X)
+        X = self.X - mean
+        return (X @ self.v) @ self.v.T + mean
+
+    def __call__(self):
         X = self.X - self.get_mean(self.X)
-        return (X @ self.vector[:, range(num)]) @ self.vector[:, range(num)].T + self.get_mean(self.X)
+        return X @ self.v
 
 
 class LDA():
