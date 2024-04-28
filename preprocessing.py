@@ -7,21 +7,28 @@ import matplotlib.pyplot as plt
 
 def  get_angle_in_degrees(vector1, vector2):
     """
-    서로의 각도 구하는 식
+    :param vector1: 비교할 벡터 1
+    :param vector2:  비교할 벡터 2
+    :return: 벡터1 벡터2에 대한 각도 반화
     """
-    cos_sim = np.dot(vector1, vector2) / (np.linalg.norm(vector1) * np.linalg.norm(vector2)) 
-    truncated_arr = np.round(np.trunc(cos_sim * 100) / 100, 1)
-    # 코사인 유사도를 각도로 변환
-    angle_in_radians = np.arccos(truncated_arr)
+
+    cos_sim = np.dot(vector1, vector2) / (np.linalg.norm(vector1) * np.linalg.norm(vector2))  # cos similarity 실행하여, 내적 결과 파악
+    truncated_arr = np.round(np.trunc(cos_sim * 100) / 100, 1)                        # 절삭 이후, 소수점 2번째자리에서 반올림
+
+    angle_in_radians = np.arccos(truncated_arr)                                               #cos 각도 계산
     angle_in_degrees = np.degrees(angle_in_radians)
     return angle_in_degrees
 
 def get_eigen_vectors(X):
-    eigen_value, eigen_vector = numpy.linalg.eig(X)
+    """
+    :param X: X 행렬
+    :return: Eigen_value, Eigen_Vector
+    """
+    eigen_value, eigen_vector = numpy.linalg.eig(X)             #X행렬에 대한 EVD 실행
     # eigen_value = np.diag(eigen_va/lue)
-    index = np.argsort(eigen_value)[::-1]
-    eigen_value = eigen_value[index]
-    eigen_vector = eigen_vector[:, index]
+    index = np.argsort(eigen_value)[::-1]                       #eigen_value에 대한 index 정렬 실행
+    eigen_value = eigen_value[index]                            #정렬한 index 내림차순으로 한 뒤 value 가져임
+    eigen_vector = eigen_vector[:, index]                       #vecotr index 따라 큰 순서대로 정렬
     return eigen_value, eigen_vector
 
 
@@ -54,47 +61,58 @@ class PCA():
     PCA 구현하는 클래스
     """
     def __init__(self, X):
-        self.X = X
-        self.N, self.F = X.shape
-        self.v = None
+        """
+
+        :param X: Train data 수집
+        """
+        self.X = X                                  #X 데이터 저장
+        self.N, self.F = X.shape                    #N, F 저장
+        self.vector = None                          #Vector &vector value
         self.value = None
-        self.explained_variance_ratio = None
+        self.explained_variance_ratio = None        #데이터 분산 비율 저장
 
         # self.explained_variance_ratio = value / value.sum()
 
     def fit(self, num=1):
-        s = self.get_scatter_matrix()
-        value, vector = get_eigen_vectors(s)
+        """
+        :param num: 축소할 vector 사이즈 지정 EX) 1개, 2개, 3개...
+        :return: None 내부적으로 vector 저장
+        """
+        s = self.get_scatter_matrix()                               #scatter 행렬 계산
+        value, vector = get_eigen_vectors(s)                        #S가지고 Eigenvalue, vector 계산
+        
+        self.value = value.real                                     #eigen value 값 저장
 
-        self.value = value.real
-
-        self.explained_variance_ratio = self.value.real / self.value.sum()
-        print(vector.shape)
-        v = vector[:, :num].real
-        if num == 1:
+        self.explained_variance_ratio = self.value.real / self.value.sum()      #eigen value 전체 분산 저장
+        v = vector[:, :num].real                                                #Vector 값은 num 만큼 저장하고 복소수 말고 real 값만 저장
+        if num == 1:                                                            #num == 1 일때 값이 (1, -1) 저장 벡터화 시켜주기
            v = v.reshape(-1 ,1)
-        self.v = v
+        self.vector = v                                                         # 벡터 저장
 
     def reconstruct(self, X = None):
         """
-        예시 :
-        벡터 (2,1) @ (1,)
-        reconst_test = (test_Vector.T @ valuess + 5)
-
-        :param num:
+        reconstruction 실행 함수
+        :param num: X 재구성할 데이터 넣기 
         :return:
         """
+        # X 데이터가 있으면 Test데이터 없으면 Train 데이터 실행
+        # 똑같이 차원 축소 후 평균값 더해 차원 맞추기
         if X is not None:
             mean = self.get_mean(X)
             X = X - mean
-            return (X @ self.v) @ self.v.T + mean
+            return (X @ self.vector) @ self.vector.T + mean
 
         mean = self.get_mean(self.X)
         X = self.X - mean
-        return (X @ self.v) @ self.v.T + mean
+        return (X @ self.vector) @ self.vector.T + mean # 다시 self.vector.T 내적해야 원래 데이터 차원이 나옴 (평균값 다시 더 해주기)
 
     def get_mean(self, X):
-        mean = X.mean(axis=0)
+        """
+        평균 반환하는 함수
+        :param X: 데이터
+        :return: 평균값 반환
+        """
+        mean = X.mean(axis=0) # 데이터 평균 구해서 반환
         return mean
 
     def get_scatter_matrix(self):
@@ -102,18 +120,23 @@ class PCA():
         Scatter matrix 구현하는 함수
         """
         X: numpy.array
-        mean = self.X.mean(axis=0)
-        X = self.X - mean
+        mean = self.X.mean(axis=0)                      # 전체 Feature 대한 평균 구하기
+        X = self.X - mean                               # 평균 빼기
         # numpy.cov(X, rowvar = False, bias=True)
-        result = (X.T @ X) / self.N
-        return result
+        result = (X.T @ X) / self.N                     # Scatter 행렬 계산
+        return result                                   # 행렬 반환
 
     def __call__(self, X =None):
+        """
+        차원 축소할때 사용하는 함수
+        :param X: Test 데이터는 테스트 데이터 사용 용도
+        :return: 차원 축소된 결과값
+        """
         if X is not None:
-            X = X - self.get_mean(X)
-            return X @ self.v
+            X = X - self.get_mean(X)            #평균값 구하기 뺴기
+            return X @ self.vector              # 기존에 구한 Vector와 X 내적하기
         X = self.X - self.get_mean(self.X)
-        return X @ self.v
+        return X @ self.vector
 
 
 class LDA():
@@ -121,18 +144,24 @@ class LDA():
     LDA 구현하는 클래스
     """
     def __init__(self, data, target):
+        """
+        :param data:   학습 데이터
+        :param target: 학습 데이터 정답
+        """
         super().__init__()
-        #입력 데이터 정보 저장
-        
-        self.data = data
-        self.N, self.F = data.shape
+        self.data = data                    #데이터 저장
+        self.N, self.F = data.shape         #데이터 갯수 and feature size 저장
         
         # classes 대한 정보
-        self.classes = np.unique(target)
-        self.labels = target
-        self.vector = None
+        self.classes = np.unique(target)    #저장 시킬 Classes 정보 저장
+        self.labels = target                #데이터 정답 저장
+        self.vector = None                  # LDA 할때 축소할 Vector 선언
     
     def fit_svd(self, num=1):
+        """
+        :param num: 축소할 vector 사이즈 지정 EX) 1개, 2개, 3개...
+        :return: None 내부적으로 vector 저장
+        """
         _, y_t = np.unique(self.labels, return_inverse=True)  #
         
         priors_ = np.bincount(y_t) / float(len(self.labels))
@@ -177,31 +206,46 @@ class LDA():
 
 
     def fit_eigen(self, num=1):
-        mean_list = [self.data[self.labels == c].mean(axis=0) for c in self.classes]
-        SW, SB = self.get_scatter_matrix(mean_list)
+        """
+        
+        :param num: 축소할 vector 사이즈 지정 EX) 1개, 2개, 3개...
+        :return: None 내부적으로 vectro 저장
+        """
+        
+        mean_list = [self.data[self.labels == c].mean(axis=0) for c in self.classes]    # classes 별 데이터 평균 계산
+        SW, SB = self.get_scatter_matrix(mean_list)                                     # Within, between scatter 구하는 메소드 호출
 
-        inverse = np.linalg.pinv(SW).dot(SB)
-        value, vector = get_eigen_vectors(inverse)
-        vector = vector[:, :num].real
+        inverse = np.linalg.pinv(SW).dot(SB)                                            #구한 SW inverse 구하고, SB 내적을 실행.
+        value, vector = get_eigen_vectors(inverse)                                      #inverse 값을 eigen vector를 구함
+        vector = vector[:, :num].real                                                   #vecotr 사이즈 만큼 벡터를 가져와 self.vector안에 저장
         self.vector = vector
 
     def get_scatter_matrix(self, mean_list):
+        """
+        :param mean_list: 클래스당 평균 list
+        :return: SW, SB
+        """
 
-        U = np.mean(self.data, axis=0)
+        U = np.mean(self.data, axis=0)                                          #값 전체 평균
 
-        S_W = np.zeros((self.F, self.F))
-        S_B = np.zeros((self.F, self.F))
+        S_W = np.zeros((self.F, self.F))                                        # SW = F by F 행렬 만들기
+        S_B = np.zeros((self.F, self.F))                                        # SB = F by F 행렬 만들기
+        
         for index, value in enumerate(self.classes):
-            u_i = self.data[self.labels == value]
-            S_W += (u_i - mean_list[index]).T @ (u_i - mean_list[index])
+            u_i = self.data[self.labels == value]                               #클래스당 평균값 추출
+            S_W += (u_i - mean_list[index]).T @ (u_i - mean_list[index])        #SW 행렬 계산하기 (전체 Class 분산을 더한다)
 
-            u = (mean_list[index] - U).reshape(-1,1)
+            u = (mean_list[index] - U).reshape(-1,1)                            #SB는 클래스당 평균값과 전체 클래스 평균값의 거리를 계산.
             N = u_i.shape[0]
-            S_B += N * (u @ u.T)
+            S_B += N * (u @ u.T)                                                #SB 행렬 다 더하기
         return S_W, S_B
 
 
     def __call__(self, X = None):
-        if X is not None:
+        """
+        :param X: Test data에 대한 차원축소 
+        :return: 차원 축소 결과
+        """
+        if X is not None:                                                   #Test 데이터가 있으면 if문 통과 후 Test데이터 차원 축소 실행
             return X @ self.vector
-        return  self.data @ self.vector
+        return  self.data @ self.vector                                     #train 데이터 차원 축소 실행
