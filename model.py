@@ -103,7 +103,7 @@ class KnnClassifier:
         
         :param X_test:
         :param k: K 파라미터 설정
-        :return: 
+        :return: 예측 결과
         """
 
         y_pred = np.zeros(X_test.shape[0])
@@ -128,7 +128,7 @@ class KnnClassifier:
         :param y_test: 입력에 사용된 정답 데이터
         :param k:  KNN 파리미터 값
         :param quiet: print문 실행
-        :return: 
+        :return:  정확도
         """
         y_test_pred = self.predict(x_test, k=k)         # 예측 값 반환
         num_samples = x_test.shape[0]               
