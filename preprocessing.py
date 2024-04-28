@@ -33,13 +33,14 @@ def get_eigen_vectors(X):
 
 
 def grid_3d(test_reuslt, y_test, name, label_encode_dict):
+
     # 라벨별로 데이터를 모으기
     unique_labels = np.unique(y_test)
     label_data = {label: [] for label in unique_labels}
     for i, label in enumerate(y_test):
         label_data[label].append(test_reuslt[i])
 
-    # 3D 플롯 그리기
+    # 3D plot 그리기
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
@@ -162,36 +163,38 @@ class LDA():
         :param num: 축소할 vector 사이즈 지정 EX) 1개, 2개, 3개...
         :return: None 내부적으로 vector 저장
         """
-        _, y_t = np.unique(self.labels, return_inverse=True)  #
+        _, y_t = np.unique(self.labels, return_inverse=True)  #고유 Y값 추출
         
-        priors_ = np.bincount(y_t) / float(len(self.labels))
+        priors_ = np.bincount(y_t) / float(len(self.labels)) # priors_ 설정하여, 표본 비율을 유지하도록 한다.
 
 
         XG = []
 
         n_classes = len(list(self.classes))
 
-        mean_list = [self.data[self.labels == c].mean(axis=0) for c in self.classes]
-        mean_stack = np.stack(mean_list)
+        mean_list = [self.data[self.labels == c].mean(axis=0) for c in self.classes]        # Classes 각 평균에 대한 값을 저장한다.
+        mean_stack = np.stack(mean_list)                                                    # ex 37, 4096
 
         for idx, g in enumerate(self.classes):
             xg = self.data[self.labels == g]
             XG.append(xg - mean_list[idx])
         
-        xbar_ = np.dot(priors_, mean_stack)    
-        mean_data = np.concatenate(XG, axis=0)
+        xbar_ = np.dot(priors_, mean_stack)    #xbar 표본 평균 값을 구한다.
+        mean_data = np.concatenate(XG, axis=0)  # 평균값을 계산
 
-        std = mean_data.std(axis=0)
+        std = mean_data.std(axis=0)             # 분산 계산
         std[std == 0] = 1.0
         fac = 1.0 / (self.N - n_classes)
-        
-        X = np.sqrt(fac) * (mean_data / std)
-        U, S, Vt = np.linalg.svd(X, full_matrices=False)
+
+        #svd low rank approximation   사용한다.
+        X = np.sqrt(fac) * (mean_data / std) # 값을 표준편차로 정규화
+        U, S, Vt = np.linalg.svd(X, full_matrices=False) # 그 후 값을 EVD 아닌, SVD 설정해 값을 분해한다.
         rank = np.sum(S > 0.0001)
 
         scalings = (Vt[:rank] / std).T / S[:rank]
         fac = 1.0 if n_classes == 1 else 1.0 / (n_classes - 1)
-
+        
+        #X에 대한 값을 스케일링 실행
         X = np.dot(
             (
                 (np.sqrt((self.N *  priors_) * fac))
@@ -199,9 +202,11 @@ class LDA():
             ).T,
             scalings,
         )
-
+        # 다시 X에 대한 값을 분해한다.
         _, S, Vt = np.linalg.svd(X, full_matrices=0)
         rank = np.sum(S > 0.0001 * S[0])
+
+        # eigen vector 값 설정
         self.vector = np.dot(scalings, Vt.T[:, :num])
 
 
