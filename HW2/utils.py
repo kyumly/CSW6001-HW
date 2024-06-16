@@ -1,6 +1,6 @@
 import numpy as np
 
-np.random.seed(42)
+np.random.seed(30)
 
 import numpy as np
 def standardize(X):
