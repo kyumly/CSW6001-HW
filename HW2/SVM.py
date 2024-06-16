@@ -64,9 +64,11 @@ class CustomSVM():
 
         if tpye == "non-linear":
             # diag 행렬 만들어서 0 보다 큰 조건, 그리고 C 보다 작은 조건 만들기
+            # 절반은 음수 절반은 양수로 설정
             G = np.concatenate([np.diag(np.ones(n) * -1), np.diag(np.ones(n))], axis=0)
             
             #H 값은 절반은 0보다 큰값 하나는 C 보다 작은값
+            # 절반 음수에 대한 값은 0에 대응, 양수는 C에 대응
             h = np.concatenate([np.zeros(n), np.ones(n) * self.C], axis=0)
         else:
             
