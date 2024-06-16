@@ -165,10 +165,8 @@ class CustomSVM():
             dim = dims[i]
             f_x, f_y = dim
 
-            # Plot the data points
             plt.scatter(X[:, f_x], X[:, f_y], c=y, s=50, cmap=plt.cm.Paired)
 
-            # Plot the decision boundary for cvxopt
             ax = plt.gca()
             xlim = ax.get_xlim()
             ylim = ax.get_ylim()
@@ -183,7 +181,6 @@ class CustomSVM():
             yy_margin1 = self.decision_boundary(xx, f_x, f_y, self.b - margin)
             yy_margin2 = self.decision_boundary(xx, f_x, f_y, self.b + margin)
 
-            # Plot the margins
             plt.plot(xx, yy_margin1, 'k--' )
             plt.plot(xx, yy_margin2, 'k--',)
             plt.legend()
