@@ -47,7 +47,7 @@ class CustomSVM():
 
         return matrix(G), matrix(h), matrix(A, tc='d'), matrix(b)
 
-    def fit(self, type="non-linear"):
+    def fit(self, option=True, type="non-linear", ):
         n = self.N
         diag_Y = np.diag(self.y.reshape(-1))
         H = diag_Y @ self.K @ diag_Y
@@ -55,6 +55,7 @@ class CustomSVM():
         q = matrix(np.ones(n) * -1)
         G, h, A, b = self.get_constaint(type)
 
+        solvers.options['show_progress'] = option
         sol = solvers.qp(P, q, G, h, A, b)
 
         alpha = sol['x']
