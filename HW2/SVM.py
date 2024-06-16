@@ -30,28 +30,43 @@ class CustomSVM():
                 self.K[i, j] = get_kernel(X[i], X[j])
 
 
-    def get_constaint(self):
+    def get_constaint(self, tpye="non-linear"):
         n = self.N
-        G = np.concatenate([np.diag(np.ones(n) * -1), np.diag(np.ones(n))], axis=0)
-        h = np.concatenate([np.zeros(n), np.ones(n) * self.C], axis=0)
+
         A = self.y.reshape(1, -1)
         b = np.zeros(1)
+
+
+        if tpye == "non-linear":
+            G = np.concatenate([np.diag(np.ones(n) * -1), np.diag(np.ones(n))], axis=0)
+            h = np.concatenate([np.zeros(n), np.ones(n) * self.C], axis=0)
+        else:
+            G = np.diag(np.ones(n) * -1)
+            h = (np.zeros(n))
+
+
         return matrix(G), matrix(h), matrix(A, tc='d'), matrix(b)
 
-    def fit(self):
+    def fit(self, type="non-linear"):
         n = self.N
         diag_Y = np.diag(self.y.reshape(-1))
         H = diag_Y @ self.K @ diag_Y
         P =  matrix(H)
         q = matrix(np.ones(n) * -1)
-        G, h, A, b = self.get_constaint()
+        G, h, A, b = self.get_constaint(type)
 
         sol = solvers.qp(P, q, G, h, A, b)
 
         alpha = sol['x']
         alpha = np.array(alpha)
 
-        zero_mask = ((alpha > 1e-4) & (alpha < self.C- 1e-4)).flatten()
+        if type == "non-linear":
+            print("non-linear 실행")
+            zero_mask = ((alpha > 1e-4) & (alpha < self.C - 1e-4)).flatten()
+        else:
+            print("linear 실행")
+            zero_mask = (alpha > 1e-4).flatten()
+
         self.support_vector =self.X[zero_mask]
 
         # 알파는 0 < 알파 < C 사이에 값을 구해야하기 때문에  mask 통해 특정 값만 추출
@@ -116,4 +131,6 @@ class CustomSVM():
             plt.legend()
             plt.xlim(xlim)
             plt.ylim(ylim)
+            plt.title(f"dimension : {f_x}, {f_y}")
+            
         plt.show()
